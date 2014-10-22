@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 #include "polipo.h"
 
+AtomPtr newUserAgent = NULL;
 int serverExpireTime =  24 * 60 * 60;
 int smallRequestTime = 10;
 int replyUnpipelineTime = 20;
@@ -43,6 +44,7 @@ int alwaysAddNoTransform = 0;
 
 static HTTPServerPtr servers = 0;
 
+static int atomSetterFlush(ConfigVariablePtr, void*);
 static int httpServerContinueConditionHandler(int, ConditionHandlerPtr);
 static int initParentProxy(void);
 static int parentProxySetter(ConfigVariablePtr var, void *value);
@@ -52,6 +54,8 @@ static int allowUnalignedRangeRequests = 0;
 void
 preinitServer(void)
 {
+    CONFIG_VARIABLE_SETTABLE(newUserAgent, CONFIG_ATOM, atomSetterFlush,
+                    "User agent to write on all outbound queries.");
     CONFIG_VARIABLE_SETTABLE(parentProxy, CONFIG_ATOM_LOWER, parentProxySetter,
                     "Parent proxy (host:port).");
     CONFIG_VARIABLE(serverExpireTime, CONFIG_TIME,
@@ -95,6 +99,13 @@ preinitServer(void)
                              "Maximum number of requests on a server-side connection.");
     CONFIG_VARIABLE(alwaysAddNoTransform, CONFIG_BOOLEAN,
                     "If true, add a no-transform directive to all requests.");
+}
+
+static int
+atomSetterFlush(ConfigVariablePtr var, void *value)
+{
+    discardObjects(1, 0);
+    return configAtomSetter(var, value);
 }
 
 static int
@@ -1692,6 +1703,13 @@ httpWriteRequest(HTTPConnectionPtr connection, HTTPRequestPtr request,
             n = snnprintf(connection->reqbuf, n, bufsize,
                           "\r\nVia: 1.1 %s",
                           proxyName->string);
+        }
+    }
+
+    if(newUserAgent) {
+        if(strcasestr(request->request->headers->string, "User-Agent") == NULL) {
+            n = snnprintf(connection->reqbuf, n, bufsize,
+                "\r\nUser-Agent: %s", newUserAgent->string);
         }
     }
 

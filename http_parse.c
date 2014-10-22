@@ -29,7 +29,7 @@ static int getNextTokenInList(const char *buf, int i,
                               int *z_return, int *t_return,
                               int *end_return);
 
-static AtomPtr atomConnection, atomProxyConnection, atomContentLength,
+static AtomPtr atomUserAgent, atomConnection, atomProxyConnection, atomContentLength,
     atomHost, atomAcceptRange, atomTE,
     atomReferer, atomProxyAuthenticate, atomProxyAuthorization,
     atomKeepAlive, atomTrailer, atomUpgrade, atomDate, atomExpires,
@@ -69,6 +69,7 @@ initHttpParser()
 {
 #define A(name, value) name = internAtom(value); if(!name) goto fail;
     /* These must be in lower-case */
+    A(atomUserAgent, "user-agent");
     A(atomConnection, "connection");
     A(atomProxyConnection, "proxy-connection");
     A(atomContentLength, "content-length");
@@ -1249,12 +1250,25 @@ httpParseHeaders(int client, AtomPtr url,
                 cache_control.flags |= CACHE_COOKIE;
 
             if(hbuf) {
+                int passUserAgent = 0;
+                if(name == atomUserAgent) {
+                    AtomPtr value = internAtomN(buf + value_start, value_end - value_start);
+                    char* netflix = strcasestr(value->string, "Netflix");
+                    char* xbox = strcasestr(value->string, "Xbox");
+                    if(netflix != NULL || xbox != NULL) {
+                        do_log(L_ERROR, "Allowing a XBOX or NETFLIX client to pass real user agent (TetherUnblocked)\n");
+                        passUserAgent = 1;
+                    }
+                    releaseAtom(value);
+                    netflix = NULL;
+                    xbox = NULL;
+                }
                 if(name != atomConnection && name != atomHost &&
                    name != atomAcceptRange && name != atomTE &&
                    name != atomProxyAuthenticate &&
                    name != atomKeepAlive &&
                    (!hopToHop || !atomListMember(name, hopToHop)) &&
-                   !atomListMember(name, censoredHeaders)) {
+                   (!atomListMember(name, censoredHeaders) || passUserAgent)) {
                     int h;
                     while(hbuf_length > hbuf_size - 2)
                         RESIZE_HBUF();
@@ -1268,7 +1282,7 @@ httpParseHeaders(int client, AtomPtr url,
                     } while(h < 0);
                     hbuf_length = h;
                 }
-            }
+            } 
         }
         releaseAtom(name);
         name = NULL;
