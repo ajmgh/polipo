@@ -35,8 +35,13 @@ CDEBUGFLAGS = -Os -g -Wall -fno-strict-aliasing
 
 # On mingw, you need
 
+# Android Specific
+LDFLAGS = -Fpie
+
+
 # EXE=.exe
 # LDLIBS = -lws2_32
+
 
 FILE_DEFINES = -DLOCAL_ROOT=\"$(LOCAL_ROOT)/\" \
                -DDISK_CACHE_ROOT=\"$(DISK_CACHE_ROOT)/\"
@@ -58,9 +63,9 @@ FILE_DEFINES = -DLOCAL_ROOT=\"$(LOCAL_ROOT)/\" \
 #  -DNO_REDIRECTOR to compile out the Squid-style redirector code
 #  -DNO_SYSLOG to compile out logging to syslog
 
-DEFINES = $(FILE_DEFINES) $(PLATFORM_DEFINES)
+DEFINES = $(FILE_DEFINES) $(PLATFORM_DEFINES) -DNO_DISK_CACHE -DNO_SYSLOG
 
-CFLAGS = $(MD5INCLUDES) $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
+CFLAGS = $(MD5INCLUDES) $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES) -pie
 
 SRCS = util.c event.c io.c chunk.c atom.c object.c log.c diskcache.c main.c \
        config.c local.c http.c client.c server.c auth.c tunnel.c \
