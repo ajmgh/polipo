@@ -1,3 +1,9 @@
+This is a version of polipo that is used in my TetherUnblocked tether unblocking app for Android.
+It has very little changes, and at this time only has an additional configuration parameter to add
+a custom User-Agent to feign in all outgoing requests.
+
+Any other changes will be viewable by the history.
+
 Polipo README
 =============
 
